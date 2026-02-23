@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Kalkulator kosztu przesyłki - MOBI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: linear-gradient(135deg, #0f2f59, #1e5aa8);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        color: #333;
+    }
+
+    header {
+        background: white;
+        padding: 15px 30px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    header img {
+        max-height: 70px;
+    }
+
+    .container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .calculator {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        width: 100%;
+        max-width: 450px;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #0f2f59;
+    }
+
+    label {
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0 20px 0;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        font-size: 16px;
+        transition: 0.3s;
+    }
+
+    input:focus {
+        border-color: #1e5aa8;
+        outline: none;
+        box-shadow: 0 0 8px rgba(30,90,168,0.3);
+    }
+
+    button {
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #1e5aa8, #0f2f59);
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    .result {
+        margin-top: 25px;
+        padding: 15px;
+        background: #f3f6fb;
+        border-radius: 12px;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    footer {
+        text-align: center;
+        padding: 15px;
+        background: #0f2f59;
+        color: white;
+        font-size: 14px;
+    }
+
+    @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(10px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Placeholder_Logo.png" alt="Logo MOBI">
+</header>
+
+<div class="container">
+    <div class="calculator">
+        <h2>Kalkulator kosztu przesyłki</h2>
+
+        <label>Waga przesyłki (kg)</label>
+        <input type="number" id="weight" step="any">
+
+        <label>2 pierwsze cyfry kodu pocztowego</label>
+        <input type="text" id="postcode" maxlength="2">
+
+        <button onclick="calculate()">Oblicz koszt</button>
+
+        <div class="result" id="result"></div>
+    </div>
+</div>
+
+<footer>
+    Autor aplikacji: <strong>Dariusz Płomiński</strong>
+</footer>
+
+<script>
+// ===== STREFY =====
+const zones = {
+    1: ["50","51","52","53","54","55","45","49","56","57","58"],
+    2: ["41","42","44","46","47","48","59","60","61","62","63","65","67","68","98"],
+    3: ["26","29","32","40","43","64","66","69","88","90","91","92","93","94","95","97","99"],
+    4: ["00","01","02","03","04","05","09","25","27","28","33","34","35","73","74","77","86","87","89","96","30","31","85"],
+    5: ["06","07","08","10","12","13","14","18","20","21","23","24","36","37","38","39","70","71","72","75","76","78","80","81","82","83","84"],
+    6: ["11","15","16","17","19","22"]
+};
+
+// ===== CENNIK =====
+const prices = {
+    50:  [95,110,124,131,145,160],
+    100: [108,122,135,143,157,171],
+    200: [130,145,160,168,181,193],
+    300: [149,185,205,223,257,277],
+    400: [155,187,208,228,263,290],
+    500: [159,190,211,233,268,297],
+    600: [161,193,217,235,277,307],
+    700: [168,197,219,247,282,317],
+    800: [172,205,223,257,285,328],
+    1000:[242,285,328,349,367,410]
+};
+
+function getZone(postcode) {
+    for (let zone in zones) {
+        if (zones[zone].includes(postcode)) {
+            return parseInt(zone);
+        }
+    }
+    return null;
+}
+
+function getWeightCategory(weight) {
+    const categories = Object.keys(prices).map(Number).sort((a,b)=>a-b);
+    for (let cat of categories) {
+        if (weight <= cat) return cat;
+    }
+    return null;
+}
+
+function calculate() {
+
+    let weight = parseFloat(document.getElementById("weight").value);
+    let postcode = document.getElementById("postcode").value.trim();
+
+    if (isNaN(weight) || weight <= 0) {
+        document.getElementById("result").innerHTML = "Podaj poprawną wagę.";
+        return;
+    }
+
+    if (!/^\d{2}$/.test(postcode)) {
+        document.getElementById("result").innerHTML = "Podaj dwie cyfry kodu pocztowego.";
+        return;
+    }
+
+    let zone = getZone(postcode);
+    if (!zone) {
+        document.getElementById("result").innerHTML = "Nie znaleziono strefy dla tego kodu.";
+        return;
+    }
+
+    let weightCat = getWeightCategory(weight);
+    if (!weightCat) {
+        document.getElementById("result").innerHTML = "Waga przekracza dostępny zakres (max 1000 kg).";
+        return;
+    }
+
+    let basePrice = prices[weightCat][zone-1];
+    let finalPrice = (basePrice + (basePrice * 0.3246)) + 2;
+
+    document.getElementById("result").innerHTML =
+        "<strong>Strefa:</strong> " + zone + "<br>" +
+        "<strong>Cena bazowa:</strong> " + basePrice + " zł<br>" +
+        "<strong>Cena końcowa:</strong> " + finalPrice.toFixed(2) + " zł";
+}
+</script>
+
+</body>
+</html>
